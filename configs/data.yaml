@@ -1,0 +1,16 @@
+# 데이터 설정
+tickers:
+  SP500:  {symbol: "^GSPC", name: "S&P 500"}
+  NASDAQ: {symbol: "^IXIC", name: "NASDAQ Composite"}
+  KOSPI:  {symbol: "^KS11", name: "KOSPI"}
+
+# 컨텍스트 2048일(약 8년)을 채우고도 2007년부터 테스트하려면 1997년 전후부터 필요
+start: "1997-01-01"
+end: null            # null이면 오늘까지
+
+# 휴장일 처리: 각 지수의 자체 거래일 달력을 그대로 사용 (타 지수 달력으로 ffill 하지 않음)
+calendar: own
+
+clean:
+  max_abs_return: 0.25     # 일간 수익률 절댓값이 이를 넘으면 리포트에 이상치로 표시 (삭제하지는 않음)
+  drop_flat_bars: false    # H==L==O==C 인 날(특히 구 코스피 데이터)을 삭제할지. false면 표시만 함

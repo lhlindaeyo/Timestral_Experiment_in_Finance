@@ -1,0 +1,13 @@
+torch>=2.4
+timestral @ git+https://github.com/mistralai/timestral.git
+numpy
+pandas
+pyarrow
+scipy
+statsmodels
+yfinance
+matplotlib
+pyyaml
+huggingface_hub
+tqdm
+pytest

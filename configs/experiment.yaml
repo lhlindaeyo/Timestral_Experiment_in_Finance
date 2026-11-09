@@ -1,0 +1,39 @@
+# 백테스트 설정
+models:
+  - timestral-5M
+  - timestral-28M
+  - timestral-123M
+  - timestral-209M
+  - arima
+  - climatology        # 무조건(경험적) 분위수 기준선
+
+context_lengths: [256, 512, 1024, 2048]   # Timestral 에만 적용. arima/climatology 는 자체 설정 사용
+
+origin_step: 5               # rolling origin 간격 (거래일). 윈도우가 겹치므로 유효 표본은 훨씬 작음
+test_start: "2007-01-01"     # 2008, 2020, 2022 위기 구간 포함
+test_end: null
+
+timestral:
+  repo_prefix: "mistralai/"  # 예: mistralai/Timestral-209M
+  models_dir: "models"       # models/Timestral-209M/ 가 있으면 로컬 우선
+  device: "cpu"              # "cuda" 가능
+  batch_size: 32
+
+arima:
+  context: 1024              # ARIMA 적합에 쓰는 최근 관측 수
+  max_p: 2
+  max_q: 2
+  refit_every: 20            # origin 20개마다 재적합 (사이에는 파라미터 고정, 새 데이터만 필터링)
+  dist: bootstrap            # normal | bootstrap(표준화 잔차 경험분포 x 예측표준오차)
+  order_select_obs: 1500     # 차수 선택에 쓰는 테스트 이전 관측 수
+
+climatology:
+  lookback: null             # null 이면 expanding window (origin 시점까지 전체 과거)
+
+# 위기 / 평시 분리 평가 (origin 날짜 기준)
+crisis_periods:
+  gfc_2008:    ["2008-09-01", "2009-06-30"]
+  covid_2020:  ["2020-02-15", "2020-06-30"]
+  bear_2022:   ["2022-01-01", "2022-12-31"]
+
+eval_taus: [0.05, 0.10, 0.50, 0.90, 0.95]
