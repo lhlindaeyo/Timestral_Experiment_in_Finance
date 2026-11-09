@@ -12,10 +12,6 @@ CONFIG_DIR = ROOT / "configs"
 DATA_RAW = ROOT / "data" / "raw"
 DATA_INTERIM = ROOT / "data" / "interim"
 DATA_PROCESSED = ROOT / "data" / "processed"
-RESULTS = ROOT / "results"
-FORECASTS = RESULTS / "forecasts"
-METRICS = RESULTS / "metrics"
-FIGURES = RESULTS / "figures"
 LOGS = ROOT / "logs"
 
 
@@ -41,5 +37,5 @@ def qcols(levels=None) -> list[str]:
 
 
 def ensure_dirs() -> None:
-    for d in (DATA_RAW, DATA_INTERIM, DATA_PROCESSED, FORECASTS, METRICS, FIGURES, LOGS):
+    for d in (DATA_RAW, DATA_INTERIM, DATA_PROCESSED, LOGS):
         d.mkdir(parents=True, exist_ok=True)

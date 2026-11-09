@@ -1,9 +1,8 @@
-# 가중치 / 데이터 / 로그 / 대용량 예측 원본은 git 제외 (폴더 유지를 위해 .gitkeep 만 추적)
+# 가중치 / 데이터 / 로그는 git 제외 (폴더 유지를 위해 .gitkeep 만 추적)
 models/*
 data/raw/*
 data/interim/*
 data/processed/*
-results/forecasts/*
 logs/*
 !**/.gitkeep
 

@@ -10,4 +10,6 @@ matplotlib
 pyyaml
 huggingface_hub
 tqdm
+jupyterlab
+ipykernel
 pytest

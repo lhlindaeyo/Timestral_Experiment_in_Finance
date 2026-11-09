@@ -94,18 +94,26 @@ def test_live_origin_has_no_truth(processed):
     assert len(d) == 1 and np.isnan(d["y_true"].iloc[0]) and pd.isna(d["target_date"].iloc[0])
 
 
-def test_summarize_and_bands(processed, monkeypatch, tmp_path):
+def test_run_forecasts_summarize_plots_in_memory(processed, monkeypatch):
+    """파일 저장 없이: run_forecasts -> summarize -> plots (합성 데이터, 기준선 모델만)."""
+    import src.eval.backtest as B
     import src.eval.summarize as S
-    raw = processed["m20"]
-    spec = load_series_specs()["m20"]
-    origins = make_origins(raw, "2021-06-01", None, 5, 20, 256)
-    d = backtest_frame(raw, spec, ClimatologyRunner({}), 20, None, origins)
-    d.insert(0, "model", "climatology"); d.insert(1, "ticker", "SP500"); d.insert(2, "series", "m20")
-    d.insert(3, "horizon", 20); d.insert(4, "ctx", -1)
-    monkeypatch.setattr(S, "METRICS", tmp_path)
+    from src.viz.plots import calibration_plot, fan_chart, select, size_comparison
+    monkeypatch.setattr(B, "load_processed", lambda k: processed)
     monkeypatch.setattr(S, "load_processed", lambda k: processed)
-    groups, tau = summarize(d, save=True)
+
+    fc = B.run_forecasts(tickers=["SP500"], models=["climatology"], experiments=[("m20", 20), ("yz20", 20)],
+                         ctxs=[256], origin_step=5, test_start="2021-06-01", progress=False)
+    assert {"model", "ticker", "series", "horizon", "ctx", "origin_date", "y_true", "q05", "ms_per_forecast"} <= set(fc.columns)
+    assert set(fc.series) == {"m20", "yz20"} and (fc.ctx == -1).all()
+
+    groups, tau = summarize(fc, origin_step=5, test_start="2021-06-01")
     assert {"mase_median", "avg_pinball", "coverage80", "n_eff"} <= set(groups.columns)
     assert {"violation_rate", "kupiec_p", "christoffersen_p", "pinball"} <= set(tau.columns)
-    assert (tmp_path / "summary_tau.csv").exists()
-    assert classify_mdd(d).isin(["panic(<q05)", "deep(q05~q10)", "common(q10~q50)", "mild(>q50)"]).all()
+
+    one = select(fc, series="m20", horizon=20)
+    assert classify_mdd(one).isin(["panic(<q05)", "deep(q05~q10)", "common(q10~q50)", "mild(>q50)"]).all()
+    import matplotlib.pyplot as plt
+    for fig in (fan_chart(one, "t"), calibration_plot(tau, "SP500", "m20", 20), size_comparison(tau, "m20", 20)):
+        assert fig.axes
+        plt.close(fig)
