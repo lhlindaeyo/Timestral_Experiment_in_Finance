@@ -15,6 +15,7 @@ import pandas as pd
 
 from src.common import load_config, quantile_levels
 from src.targets.mdd import trailing_mdd_series
+from src.targets.returns import trailing_log_return
 from src.targets.yang_zhang import yang_zhang
 
 _VOL_FLOOR = 1e-6
@@ -23,9 +24,9 @@ _VOL_FLOOR = 1e-6
 @dataclass(frozen=True)
 class SeriesSpec:
     name: str
-    kind: str                 # "mdd" | "yang_zhang"
+    kind: str                 # "mdd" | "yang_zhang" | "return"
     window: int
-    transform: str            # "log1p_mag" | "log"
+    transform: str            # "log1p_mag" | "log" | "identity"
     annualize: int = 252
 
     # ---- 지표 계산 (라벨 + 입력 공통) -----------------------------------
@@ -34,6 +35,8 @@ class SeriesSpec:
             s = trailing_mdd_series(ohlc["close"], self.window)
         elif self.kind == "yang_zhang":
             s = yang_zhang(ohlc, self.window, self.annualize)
+        elif self.kind == "return":
+            s = trailing_log_return(ohlc["close"], self.window)
         else:
             raise ValueError(f"unknown kind: {self.kind}")
         s.name = self.name
@@ -50,6 +53,8 @@ class SeriesSpec:
             return np.log1p(np.clip(-raw, 0.0, 1.0 - 1e-9))
         if self.transform == "log":
             return np.log(np.clip(raw, _VOL_FLOOR, None))
+        if self.transform == "identity":
+            return raw.copy()
         raise ValueError(self.transform)
 
     def quantiles_to_raw(self, q_model: np.ndarray) -> np.ndarray:
@@ -62,6 +67,8 @@ class SeriesSpec:
             raw = -mag[:, ::-1]                     # 레벨 뒤집기
         elif self.transform == "log":
             raw = np.exp(q)
+        elif self.transform == "identity":
+            raw = q
         else:
             raise ValueError(self.transform)
         return np.sort(raw, axis=1)                 # 분위수 교차(crossing) 방지

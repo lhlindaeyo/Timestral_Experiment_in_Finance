@@ -22,8 +22,9 @@ def select(df: pd.DataFrame, **conds) -> pd.DataFrame:
     return df[m]
 
 
-def fan_chart(df: pd.DataFrame, title: str = "", crisis_periods: dict | None = None):
-    """단일 (모델, 지수, 시계열, horizon, ctx) 예측: 분위수 밴드 vs 실현값. q05 아래 이탈은 빨간 점."""
+def fan_chart(df: pd.DataFrame, title: str = "", crisis_periods: dict | None = None, show_upper: bool = False):
+    """단일 (모델, 지수, 시계열, horizon, ctx) 예측: 분위수 밴드 vs 실현값. q05 아래 이탈은 빨간 점.
+    show_upper=True (수익률 등 양측 꼬리가 중요한 경우) 면 q95 위 이탈도 주황 점으로 표시."""
     df = df.dropna(subset=["y_true"]).sort_values("target_date")
     x = df["target_date"]
     fig, ax = plt.subplots(figsize=(12, 4.5))
@@ -33,10 +34,13 @@ def fan_chart(df: pd.DataFrame, title: str = "", crisis_periods: dict | None = N
     ax.plot(x, df["y_true"], color="black", lw=0.8, label="realized")
     viol = df[df["y_true"] < df[qcol(0.05)]]
     ax.scatter(viol["target_date"], viol["y_true"], color="red", s=14, zorder=5, label="< q05")
+    if show_upper:
+        up = df[df["y_true"] > df[qcol(0.95)]]
+        ax.scatter(up["target_date"], up["y_true"], color="darkorange", s=14, zorder=5, label="> q95")
     for a, b in (crisis_periods or load_config("experiment")["crisis_periods"]).values():
         ax.axvspan(pd.Timestamp(a), pd.Timestamp(b), color="gray", alpha=0.12)
     ax.set_title(title)
-    ax.legend(ncol=5, fontsize=8, loc="upper right")
+    ax.legend(ncol=6, fontsize=8, loc="upper right")
     fig.tight_layout()
     return fig
 

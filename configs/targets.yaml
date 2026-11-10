@@ -19,6 +19,19 @@ series:
     window: 20
     annualize: 252
     transform: log
+  # 수익률 분포: trailing w일 누적 로그수익률 ln(C_t / C_{t-w}). 부호가 있어 변환/꼬리 뒤집기 없음
+  r1:
+    kind: return
+    window: 1
+    transform: identity
+  r5:
+    kind: return
+    window: 5
+    transform: identity
+  r20:
+    kind: return
+    window: 20
+    transform: identity
 
 # 실험 = (시계열, 예측 스텝). "t 이후 h일의 지표" == "t+h 시점의 trailing 값"
 experiments:
@@ -26,9 +39,14 @@ experiments:
   - {series: m20,  horizon: 20}
   - {series: yz20, horizon: 20}
   - {series: yz20, horizon: 5}    # 보조
+  - {series: r1,   horizon: 1}    # 수익률 분포 (1일 / 5일 / 20일 앞 구간 수익률)
+  - {series: r5,   horizon: 5}
+  - {series: r20,  horizon: 20}
 
 # 밴드 해석에 쓰는 레벨 (docs 2절)
 bands:
   m5:   {panic: 0.05, common: 0.10, mid: 0.50}
   m20:  {worst: 0.05, low: 0.10, mid: 0.50}
   yz20: {low: 0.10, high: 0.90}
+  r5:   {tail_low: 0.05, tail_high: 0.95, mid: 0.50}
+  r20:  {tail_low: 0.05, tail_high: 0.95, mid: 0.50}

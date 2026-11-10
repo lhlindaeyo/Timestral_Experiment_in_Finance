@@ -6,6 +6,7 @@ import pandas as pd
 import pytest
 
 from src.targets.mdd import trailing_mdd
+from src.targets.returns import trailing_log_return
 from src.targets.spec import SeriesSpec
 from src.targets.yang_zhang import yang_zhang
 from src.common import quantile_levels
@@ -80,6 +81,31 @@ def test_yz_zero_when_no_intraday_or_gap_variation():
     o = np.r_[c[0], c[:-1]]
     df = pd.DataFrame({"open": o, "high": c, "low": o, "close": c}, index=pd.bdate_range("2020-01-01", periods=40))
     assert yang_zhang(df, 20).iloc[-1] == pytest.approx(0.0, abs=1e-9)
+
+
+def test_trailing_log_return_hand_calc():
+    c = pd.Series([100.0, 110.0, 99.0, 105.0, 90.0])
+    r1 = trailing_log_return(c, 1)
+    r3 = trailing_log_return(c, 3)
+    assert np.isnan(r1.iloc[0]) and r1.iloc[1] == pytest.approx(math.log(110 / 100))
+    assert r3.iloc[:3].isna().all()
+    assert r3.iloc[3] == pytest.approx(math.log(105 / 100))
+    assert r3.iloc[4] == pytest.approx(math.log(90 / 110))
+    # 1일 수익률 3개의 합 == 3일 수익률 (로그수익률 가법성)
+    assert r1.iloc[2:5].sum() == pytest.approx(r3.iloc[4])
+
+
+def test_return_spec_is_identity_and_not_flipped():
+    q = quantile_levels()
+    s = SeriesSpec("r20", "return", 20, "identity")
+    x = np.array([-0.05, 0.0, 0.03])
+    assert np.allclose(s.to_model(x), x)
+    qm = np.linspace(-0.10, 0.08, len(q))[None, :]
+    raw = s.quantiles_to_raw(qm)
+    assert np.allclose(raw, qm)                     # 방향 유지: q01 = 가장 큰 손실
+    assert raw[0, 0] == pytest.approx(-0.10) and raw[0, -1] == pytest.approx(0.08)
+    ohlc = _make_ohlc(60)
+    assert np.allclose(s.compute(ohlc).dropna(), np.log(ohlc.close / ohlc.close.shift(20)).dropna())
 
 
 def test_spec_roundtrip_and_tail_flip():

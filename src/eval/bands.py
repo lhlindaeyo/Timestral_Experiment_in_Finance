@@ -23,6 +23,13 @@ def classify_mdd(df: pd.DataFrame, value_col: str = "y_true") -> pd.Series:
     return pd.Series(out, index=df.index, name="mdd_state")
 
 
+def classify_return(df: pd.DataFrame, value_col: str = "y_true") -> pd.Series:
+    """수익률: q05 아래 = 하방 꼬리, q95 위 = 상방 꼬리, 그 사이는 정상."""
+    v = df[value_col]
+    out = np.select([v < df[qcol(0.05)], v > df[qcol(0.95)]], ["tail_down(<q05)", "tail_up(>q95)"], default="normal")
+    return pd.Series(out, index=df.index, name="return_state")
+
+
 def classify_vol(df: pd.DataFrame, value_col: str = "y_true") -> pd.Series:
     v = df[value_col]
     out = np.select([v > df[qcol(0.90)], v < df[qcol(0.10)]], ["high(>q90)", "low(<q10)"], default="normal")

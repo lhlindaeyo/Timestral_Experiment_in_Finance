@@ -43,7 +43,7 @@ def _check(df, n_origins):
     assert (np.diff(q, axis=1) >= 0).all()                    # 분위수 비교차
 
 
-@pytest.mark.parametrize("series,h", [("m5", 5), ("m20", 20), ("yz20", 20)])
+@pytest.mark.parametrize("series,h", [("m5", 5), ("m20", 20), ("yz20", 20), ("r1", 1), ("r5", 5), ("r20", 20)])
 def test_runners_shapes_and_order(processed, series, h):
     spec, raw = load_series_specs()[series], processed[series]
     origins = make_origins(raw, "2021-06-01", None, 10, h, max_ctx=256)
@@ -61,6 +61,17 @@ def test_mdd_quantiles_are_nonpositive_and_vol_positive(processed):
     assert (d[qcols()].to_numpy() <= 0).all()
     d = backtest_frame(processed["yz20"], load_series_specs()["yz20"], ClimatologyRunner({}), 20, None, origins)
     assert (d[qcols()].to_numpy() > 0).all()
+
+
+def test_return_forecast_is_signed_and_aligned(processed):
+    """수익률 분위수는 음수/양수 모두 가능하고, 정답은 t 이후 h일 로그수익률(= close[t+h]/close[t])."""
+    raw, spec = processed["r5"], load_series_specs()["r5"]
+    origins = make_origins(raw, "2021-06-01", None, 10, 5, 256)
+    d = backtest_frame(raw, spec, ClimatologyRunner({}), 5, None, origins)
+    q = d[qcols()].to_numpy()
+    assert (q[:, 0] < 0).all() and (q[:, -1] > 0).all()
+    fwd = np.log(processed["close"].to_numpy()[origins + 5] / processed["close"].to_numpy()[origins])
+    assert np.allclose(d["y_true"], fwd)
 
 
 def test_truth_alignment(processed):
